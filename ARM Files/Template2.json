@@ -8,70 +8,70 @@
         },
         "storageAccountName": {
             "type": "String"
-        },
-        "accountType": {
-            "type": "String"
-        },
-        "kind": {
-            "type": "String"
-        },
-        "accessTier": {
-            "type": "String"
-        },
-        "supportsHttpsTrafficOnly": {
-            "type": "Bool"
-        },
+        },       
         "cosmosDBAccountName": {
             "type": "String"
         },        
         
         "cognitiveServiceName": {
             "type": "String"
-        },  
-        "connections_azureblob_name": {
-        "defaultValue": "azureblob",
-        "type": "String"
-        },
-        "connections_documentdb_name": {
-            "defaultValue": "documentdb",
-            "type": "String"
-        },
-        "workflows_DemoLogicApp_name": {
-        "defaultValue": "DemoLogicApp",
-        "type": "String"
         }
     },
+
     "variables": {
         "tenanId": "[subscription().tenantId]",
-        "subscriptionId": "[subscription().subscriptionId]"
-        
-
+        "storageAccountNameLowerCase" : "[toLower(trim(parameters('storageAccountName')))]",
+        "subscriptionId": "[subscription().subscriptionId]",
+        "connections_azureblob_name":   "azureblob",
+        "connections_documentdb_name": "documentdb",
+        "storageAccountApiVersion": "[providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]]",
+        "cosmosAPIVersion":"[providers('Microsoft.DocumentDB', 'databaseAccounts').apiVersions[0]]",
+        "workflows_DemoLogicApp_name": "DemoLogicApp",
+        "speechAPIVersion": "[providers('Microsoft.CognitiveServices', 'accounts').apiVersions[0]]"
 
 
     },
     "resources": [
-        {
+{
             "type": "Microsoft.Storage/storageAccounts",
-            "apiVersion": "2019-06-01",
-            "name": "[parameters('storageAccountName')]",
-            "location": "[parameters('location')]",
-            "dependsOn": [],
-            "tags": {},
+            "apiVersion": "[variables('storageAccountApiVersion')]",
+            "name": "[variables('storageAccountNameLowerCase')]",
+            "location": "canadacentral",
             "sku": {
-                "name": "[parameters('accountType')]"
+                "name": "Standard_LRS",
+                "tier": "Standard"
             },
-            "kind": "[parameters('kind')]",
+            "kind": "StorageV2",
             "properties": {
-                "accessTier": "[parameters('accessTier')]",
-                "supportsHttpsTrafficOnly": "[parameters('supportsHttpsTrafficOnly')]"
+                "networkAcls": {
+                    "bypass": "AzureServices",
+                    "virtualNetworkRules": [],
+                    "ipRules": [],
+                    "defaultAction": "Allow"
+                },
+                "supportsHttpsTrafficOnly": true,
+                "encryption": {
+                    "services": {
+                        "file": {
+                            "keyType": "Account",
+                            "enabled": true
+                        },
+                        "blob": {
+                            "keyType": "Account",
+                            "enabled": true
+                        }
+                    },
+                    "keySource": "Microsoft.Storage"
+                },
+                "accessTier": "Hot"
             }
         },
         {
             "type": "Microsoft.Storage/storageAccounts/blobServices",
-            "apiVersion": "2019-06-01",
-            "name": "[concat(parameters('storageAccountName'), '/default')]",
+            "apiVersion": "[variables('storageAccountApiVersion')]",
+            "name": "[concat(variables('storageAccountNameLowerCase'), '/default')]",
             "dependsOn": [
-                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountNameLowerCase'))]"
             ],
             "sku": {
                 "name": "Standard_LRS",
@@ -88,10 +88,10 @@
         },
         {
             "type": "Microsoft.Storage/storageAccounts/fileServices",
-            "apiVersion": "2019-06-01",
-            "name": "[concat(parameters('storageAccountName'), '/default')]",
+            "apiVersion": "[variables('storageAccountApiVersion')]",
+            "name": "[concat(variables('storageAccountNameLowerCase'), '/default')]",
             "dependsOn": [
-                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountNameLowerCase'))]"
             ],
             "sku": {
                 "name": "Standard_LRS",
@@ -105,11 +105,11 @@
         },
         {
             "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
-            "apiVersion": "2019-06-01",
-            "name": "[concat(parameters('storageAccountName'), '/default/audiofiles')]",
+            "apiVersion": "[variables('storageAccountApiVersion')]",
+            "name": "[concat(variables('storageAccountNameLowerCase'), '/default/audiofiles')]",
             "dependsOn": [
-                "[resourceId('Microsoft.Storage/storageAccounts/blobServices', parameters('storageAccountName'), 'default')]",
-                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+                "[resourceId('Microsoft.Storage/storageAccounts/blobServices', variables('storageAccountNameLowerCase'), 'default')]",
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountNameLowerCase'))]"
             ],
             "properties": {
                 "publicAccess": "Container"
@@ -117,7 +117,7 @@
         },
         {
             "type": "Microsoft.DocumentDB/databaseAccounts",
-            "apiVersion": "2020-03-01",
+            "apiVersion": "[variables('cosmosAPIVersion')]",
             "name": "[parameters('cosmosDBAccountName')]",
             "location": "[parameters('location')]",
             "tags": {
@@ -143,7 +143,7 @@
         },
         {
             "type": "Microsoft.DocumentDB/databaseAccounts/sqlDatabases",
-            "apiVersion": "2020-03-01",
+            "apiVersion": "[variables('cosmosAPIVersion')]",
             "name": "[concat(parameters('cosmosDBAccountName'), '/SpeechToTextDB')]",
             "dependsOn": [
                 "[resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('cosmosDBAccountName'))]"
@@ -157,7 +157,7 @@
         },
         {
             "type": "Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers",
-            "apiVersion": "2020-03-01",
+            "apiVersion": "[variables('cosmosAPIVersion')]",
             "name": "[concat(parameters('cosmosDBAccountName'), '/SpeechToTextDB/SpeechData')]",
             "dependsOn": [
                 "[resourceId('Microsoft.DocumentDB/databaseAccounts/sqlDatabases', parameters('cosmosDBAccountName'), 'SpeechToTextDB')]",
@@ -194,24 +194,11 @@
                 "options": {}
             }
         },
-        {
-            "type": "Microsoft.DocumentDB/databaseAccounts/sqlDatabases/throughputSettings",
-            "apiVersion": "2020-03-01",
-            "name": "[concat(parameters('cosmosDBAccountName'), '/SpeechToTextDB/default')]",
-            "dependsOn": [
-                "[resourceId('Microsoft.DocumentDB/databaseAccounts/sqlDatabases', parameters('cosmosDBAccountName'), 'SpeechToTextDB')]",
-                "[resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('cosmosDBAccountName'))]"
-            ],
-            "properties": {
-                "resource": {
-                    "throughput": 400
-                }
-            }
-        },
+        
 
         {
             "type": "Microsoft.CognitiveServices/accounts",
-            "apiVersion": "2017-04-18",
+            "apiVersion": "[variables('speechAPIVersion')]",
             "name": "[parameters('cognitiveServiceName')]",
             "location": "[parameters('location')]",
             "sku": {
@@ -223,37 +210,45 @@
         {
             "type": "Microsoft.Web/connections",
             "apiVersion": "2016-06-01",
-            "name": "[parameters('connections_azureblob_name')]",
+            "name": "[variables('connections_azureblob_name')]",
             "location": "[parameters('location')]",
             "properties": {
                 "displayName": "AudioFile",
+                 "parameterValues": {
+                    "accountName": "[variables('storageAccountNameLowerCase')]",
+                    "accessKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountNameLowerCase')), variables('storageAccountApiVersion')).keys[0].value]"
+                 },
                 "customParameterValues": {},
                 "api": {
-                    "id": "[concat('/subscriptions/',variables('subscriptionId'),'/providers/Microsoft.Web/locations/',parameters('location'),'/managedApis/', parameters('connections_azureblob_name'))]"
+                    "id": "[concat('/subscriptions/',variables('subscriptionId'),'/providers/Microsoft.Web/locations/',parameters('location'),'/managedApis/', variables('connections_azureblob_name'))]"
                 }
             }
         },
         {
             "type": "Microsoft.Web/connections",
             "apiVersion": "2016-06-01",
-            "name": "[parameters('connections_documentdb_name')]",
+            "name": "[variables('connections_documentdb_name')]",
             "location": "[parameters('location')]",
             "properties": {
                 "displayName": "DemoSpeech_ComosConnection",
+                "parameterValues": {
+                    "databaseAccount": "[parameters('cosmosDBAccountName')]",
+                    "accessKey": "[listKeys(resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('cosmosDBAccountName')), variables('cosmosAPIVersion')).primaryMasterKey]"
+                 },
                 "customParameterValues": {},
                 "api": {
-                    "id": "[concat('/subscriptions/',variables('subscriptionId'),'/providers/Microsoft.Web/locations/',parameters('location'),'/managedApis/', parameters('connections_documentdb_name'))]"
+                    "id": "[concat('/subscriptions/',variables('subscriptionId'),'/providers/Microsoft.Web/locations/',parameters('location'),'/managedApis/', variables('connections_documentdb_name'))]"
                 }
             }
         },
                 {
             "type": "Microsoft.Logic/workflows",
             "apiVersion": "2017-07-01",
-            "name": "[parameters('workflows_DemoLogicApp_name')]",
+            "name": "[variables('workflows_DemoLogicApp_name')]",
             "location": "[parameters('location')]",
             "dependsOn": [
-                "[resourceId('Microsoft.Web/connections', parameters('connections_azureblob_name'))]",
-                "[resourceId('Microsoft.Web/connections', parameters('connections_documentdb_name'))]"
+                "[resourceId('Microsoft.Web/connections', variables('connections_azureblob_name'))]",
+                "[resourceId('Microsoft.Web/connections', variables('connections_documentdb_name'))]"
             ],
             "properties": {
                 "state": "Enabled",
@@ -265,12 +260,16 @@
                             "defaultValue": {},
                             "type": "Object"
                         },
+                        "CognitiveSecret": {
+                            "defaultValue": "[listKeys(resourceId('Microsoft.CognitiveServices/accounts/', parameters('cognitiveServiceName')), variables('SpeechAPIVersion')).key1]",
+                            "type": "String"
+                        },
                         "azureRegion": {
                             "defaultValue": "[parameters('location')]",
                             "type": "String"
                         },
                         "storageAccountName": {
-                            "defaultValue": "[parameters('storageAccountName')]",
+                            "defaultValue": "[variables('storageAccountNameLowerCase')]",
                             "type": "String"
                         }
                     },
@@ -1423,7 +1422,7 @@
                                 "body": "@outputs('Compose')",
                                 "headers": {
                                     "Content-Type   ": "application/json",
-                                    "Ocp-Apim-Subscription-Key": "7cec98043223459c87907c3a128ed3b4"
+                                    "Ocp-Apim-Subscription-Key": "@parameters('CognitiveSecret')"
                                 },
                                 "method": "POST",
                                 "uri": "@{concat('https://',parameters('azureRegion'),'.cris.ai/api/speechtotext/v2.0/Transcriptions')}"
@@ -1438,7 +1437,7 @@
                             "type": "Http",
                             "inputs": {
                                 "headers": {
-                                    "Ocp-Apim-Subscription-Key": "7cec98043223459c87907c3a128ed3b4"
+                                    "Ocp-Apim-Subscription-Key": "@parameters('CognitiveSecret')"
                                 },
                                 "method": "DELETE",
                                 "uri": "@{concat('https://',parameters('azureRegion'),'.cris.ai/api/speechtotext/v2.0/Transcriptions/',body('Parse_JSON')[0]['id'])}"
@@ -1637,7 +1636,7 @@
                                     "inputs": {
                                         "headers": {
                                             "Content-Type   ": "application/json",
-                                            "Ocp-Apim-Subscription-Key": "7cec98043223459c87907c3a128ed3b4"
+                                            "Ocp-Apim-Subscription-Key": "@parameters('CognitiveSecret')"
                                         },
                                         "method": "GET",
                                         "uri": "@{concat('https://',parameters('azureRegion'),'.cris.ai/api/speechtotext/v2.0/Transcriptions')}"
@@ -1688,12 +1687,12 @@
                     "$connections": {
                         "value": {
                             "azureblob": {
-                                "connectionId": "[resourceId('Microsoft.Web/connections', parameters('connections_azureblob_name'))]",
+                                "connectionId": "[resourceId('Microsoft.Web/connections', variables('connections_azureblob_name'))]",
                                 "connectionName": "azureblob",
                                 "id": "/subscriptions/5eed10dc-e0d7-42c5-961e-1ccd3b6dd500/providers/Microsoft.Web/locations/canadacentral/managedApis/azureblob"
                             },
                             "documentdb": {
-                                "connectionId": "[resourceId('Microsoft.Web/connections', parameters('connections_documentdb_name'))]",
+                                "connectionId": "[resourceId('Microsoft.Web/connections', variables('connections_documentdb_name'))]",
                                 "connectionName": "documentdb",
                                 "id": "/subscriptions/5eed10dc-e0d7-42c5-961e-1ccd3b6dd500/providers/Microsoft.Web/locations/canadacentral/managedApis/documentdb"
                             }
