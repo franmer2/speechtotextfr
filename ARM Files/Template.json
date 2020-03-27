@@ -14,11 +14,14 @@
         },
           "accountSasProperties": {
             "type": "object",
+            "metadata" : {
+                "description": "Don't change these values"
+            },
             "defaultValue": {
                 "signedServices": "b",
                 "signedPermission": "r",
                 "signedExpiry": "2038-08-20T11:00:00Z",
-                "signedResourceTypes": "c"
+                "signedResourceTypes": "o"
             }
         }
     },
