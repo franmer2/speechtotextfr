@@ -40,7 +40,7 @@
         "workflows_DemoLogicApp_name": "DemoLogicApp",
         "speechAPIVersion": "[providers('Microsoft.CognitiveServices', 'accounts').apiVersions[0]]",
         "webAPIVersion": "[providers('Microsoft.Web','connections').apiVersions[0]]",
-        "logicAppAPIVersion": "[ providers('Microsoft.Logic','workflows').apiVersions[0]]"      
+        "logicAppAPIVersion": "[ providers('Microsoft.Logic','workflows').apiVersions[0]]"     
 
 
     },
